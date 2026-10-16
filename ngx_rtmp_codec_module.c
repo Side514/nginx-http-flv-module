@@ -31,6 +31,7 @@ static ngx_int_t ngx_rtmp_codec_parse_aac_header(ngx_rtmp_session_t *s,
        ngx_chain_t *in);
 static ngx_int_t ngx_rtmp_codec_parse_avc_header(ngx_rtmp_session_t *s,
        ngx_chain_t *in);
+static ngx_flag_t ngx_rtmp_codec_is_hevc(ngx_chain_t *in);
 #if (NGX_DEBUG)
 static void ngx_rtmp_codec_dump_header(ngx_rtmp_session_t *s, const char *type,
        ngx_chain_t *in);
@@ -123,6 +124,8 @@ video_codecs[] = {
     "On2-VP6-Alpha",
     "ScreenVideo2",
     "H264",
+    "", "", "", "",
+    "H265",
 };
 
 
@@ -141,6 +144,27 @@ ngx_rtmp_get_video_codec_name(ngx_uint_t id)
     return (u_char *)(id < sizeof(video_codecs) / sizeof(video_codecs[0])
         ? video_codecs[id]
         : "");
+}
+
+
+static ngx_flag_t
+ngx_rtmp_codec_is_hevc(ngx_chain_t *in)
+{
+    u_char *p;
+
+    if (in == NULL || in->buf == NULL || in->buf->last - in->buf->pos < 5) {
+        return 0;
+    }
+
+    p = in->buf->pos;
+
+    /*
+     * Enhanced RTMP ExVideoTagHeader:
+     *   extended frame type | packet type, FourCC ("hvc1")
+     */
+    return (p[0] & 0x80) != 0
+           && p[1] == 'h' && p[2] == 'v'
+           && p[3] == 'c' && p[4] == '1';
 }
 
 
@@ -237,6 +261,9 @@ ngx_rtmp_codec_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     } else {
         ctx->video_codec_id = (fmt & 0x0f);
+        if (ngx_rtmp_codec_is_hevc(in)) {
+            ctx->video_codec_id = NGX_RTMP_VIDEO_H265;
+        }
     }
 
     /* save AVC/AAC header */
@@ -266,6 +293,8 @@ ngx_rtmp_codec_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
             if (ngx_rtmp_codec_parse_avc_header(s, in) == NGX_ERROR) {
                 return NGX_ERROR;
             }
+        } else if (ctx->video_codec_id == NGX_RTMP_VIDEO_H265) {
+            header = &ctx->avc_header;
         }
     }
 

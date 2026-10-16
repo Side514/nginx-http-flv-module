@@ -263,6 +263,7 @@ ngx_rtmp_gop_cache_link_frame(ngx_rtmp_session_t *s,
 }
 
 
+
 static ngx_int_t
 ngx_rtmp_gop_cache_alloc_cache(ngx_rtmp_session_t *s)
 {
@@ -685,7 +686,8 @@ ngx_rtmp_gop_cache_send(ngx_rtmp_session_t *s)
                     mandatory = 1;
                 }
             } else {
-                if (codec_ctx->video_codec_id == NGX_RTMP_VIDEO_H264 &&
+                if ((codec_ctx->video_codec_id == NGX_RTMP_VIDEO_H264 ||
+                     codec_ctx->video_codec_id == NGX_RTMP_VIDEO_H265) &&
                     ngx_rtmp_is_codec_header(gf->frame))
                 {
                     mandatory = 1;
@@ -1013,4 +1015,3 @@ ngx_rtmp_gop_cache_postconfiguration(ngx_conf_t *cf)
 
     return NGX_OK;
 }
-

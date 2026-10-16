@@ -38,6 +38,13 @@
 |      录制的数据信息      |           √           |         x         |                                          |
 |        大小端无关        |           √           |       见备注      |        `big-endian` 分支部分支持         |
 
+RTMP 支持 enhanced-RTMP 的 HEVC（H.265，`hvc1` FourCC）视频包。HEVC
+视频可以通过 RTMP 直播、转发、GOP 缓存、录制和 HTTP-FLV 原样传递；HLS、
+DASH 和 MP4 输入仍仅支持 H.264。
+
+此特性在 AI 协助下开发。目前只对 enhanced-RTMP 的 HEVC 子集进行了
+patch，其他 enhanced-RTMP 特性尚未实现。
+
 ## 兼容性
 
 [NGINX](http://nginx.org) 的版本**应该**大于或者等于 1.2.6，与其他版本的兼容性未知。
