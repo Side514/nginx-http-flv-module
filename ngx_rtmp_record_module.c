@@ -1149,7 +1149,7 @@ ngx_rtmp_record_node_av(ngx_rtmp_session_t *s, ngx_rtmp_record_rec_ctx_t *rctx,
                             NGX_RTMP_RECORD_KEYFRAMES)))
         {
             ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
-                           "record: %V writing AVC header", &rracf->id);
+                           "record: %V writing video header", &rracf->id);
 
             ch.type = NGX_RTMP_MSG_VIDEO;
             ch.mlen = ngx_rtmp_record_get_chain_mlen(codec_ctx->avc_header);
@@ -1166,16 +1166,20 @@ ngx_rtmp_record_node_av(ngx_rtmp_session_t *s, ngx_rtmp_record_rec_ctx_t *rctx,
     }
 
     if (h->type == NGX_RTMP_MSG_VIDEO) {
-        if (codec_ctx && codec_ctx->video_codec_id == NGX_RTMP_VIDEO_H264 &&
+        if (codec_ctx &&
+            (codec_ctx->video_codec_id == NGX_RTMP_VIDEO_H264 ||
+             codec_ctx->video_codec_id == NGX_RTMP_VIDEO_H265) &&
             !rctx->avc_header_sent)
         {
             ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
-                           "record: %V skipping until H264 header", &rracf->id);
+                           "record: %V skipping until video header", &rracf->id);
             return NGX_OK;
         }
 
         if (ngx_rtmp_get_video_frame_type(in) == NGX_RTMP_VIDEO_KEY_FRAME &&
-            ((codec_ctx && codec_ctx->video_codec_id != NGX_RTMP_VIDEO_H264) ||
+            ((codec_ctx &&
+              codec_ctx->video_codec_id != NGX_RTMP_VIDEO_H264 &&
+              codec_ctx->video_codec_id != NGX_RTMP_VIDEO_H265) ||
              !ngx_rtmp_is_codec_header(in)))
         {
             rctx->video_key_sent = 1;

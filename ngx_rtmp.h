@@ -797,6 +797,10 @@ ngx_int_t ngx_rtmp_send_sample_access(ngx_rtmp_session_t *s);
 static ngx_inline ngx_int_t
 ngx_rtmp_get_video_frame_type(ngx_chain_t *in)
 {
+    if (in->buf->pos[0] & 0x80) {
+        return (in->buf->pos[0] >> 4) & 0x07;
+    }
+
     return (in->buf->pos[0] & 0xf0) >> 4;
 }
 
@@ -804,6 +808,10 @@ ngx_rtmp_get_video_frame_type(ngx_chain_t *in)
 static ngx_inline ngx_int_t
 ngx_rtmp_is_codec_header(ngx_chain_t *in)
 {
+    if (in->buf->pos[0] & 0x80) {
+        return (in->buf->pos[0] & 0x0f) == 0;
+    }
+
     return in->buf->pos + 1 < in->buf->last && in->buf->pos[1] == 0;
 }
 

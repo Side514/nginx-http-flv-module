@@ -38,6 +38,14 @@ Donate if you like this module. Many thanks to you!
 |     Statistics for recordings      |           √           |         x         |                                                |
 |     Independent of endianness      |           √           |    See remarks    |   Partially supported in branch `big-endian`   |
 
+RTMP supports HEVC (H.265, `hvc1` FourCC) video packets from enhanced-RTMP.
+HEVC is passed through by RTMP live streaming, relay, GOP cache, recording,
+and HTTP-FLV. HLS, DASH, and MP4 input remain H.264-only.
+
+This feature was developed with the assistance of AI. This patch currently
+covers only the HEVC subset of enhanced-RTMP; other enhanced-RTMP features are
+not implemented.
+
 ## Compatibility
 
 The [NGINX](http://nginx.org) version **SHOULD** be equal to or greater than 1.2.6, the compatibility with other versions is unknown.
