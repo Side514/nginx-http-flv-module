@@ -1,5 +1,11 @@
 # nginx-http-flv-module
 
+RTMP now supports HEVC (H.265, `hvc1` FourCC) video packets per the enhanced-RTMP specification. HEVC streams pass through RTMP live streaming, relay, GOP cache, recording, and HTTP-FLV unchanged; MP4 VOD input also accepts HEVC and converts it to enhanced-RTMP packets. HLS and DASH remain H.264-only.
+
+This feature was developed with AI assistance. The patch covers only the HEVC subset of enhanced-RTMP; the remaining features are not yet implemented.
+
+---
+
 ![nginx-http-flv-module workflow](https://github.com/winshining/nginx-http-flv-module/actions/workflows/nginx-http-flv-module.yml/badge.svg?branch=master)
 
 A media streaming server based on [nginx-rtmp-module](https://github.com/arut/nginx-rtmp-module).
@@ -37,14 +43,6 @@ Donate if you like this module. Many thanks to you!
 |       JSON style statistics        |           √           |         x         |                                                |
 |     Statistics for recordings      |           √           |         x         |                                                |
 |     Independent of endianness      |           √           |    See remarks    |   Partially supported in branch `big-endian`   |
-
-RTMP supports HEVC (H.265, `hvc1` FourCC) video packets from enhanced-RTMP.
-HEVC is passed through by RTMP live streaming, relay, GOP cache, recording,
-and HTTP-FLV. HLS, DASH, and MP4 input remain H.264-only.
-
-This feature was developed with the assistance of AI. This patch currently
-covers only the HEVC subset of enhanced-RTMP; other enhanced-RTMP features are
-not implemented.
 
 ## Compatibility
 

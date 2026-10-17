@@ -333,7 +333,13 @@ static ngx_int_t ngx_rtmp_mp4_parse_co64(ngx_rtmp_session_t *s, u_char *pos,
        u_char *last);
 static ngx_int_t ngx_rtmp_mp4_parse_avc1(ngx_rtmp_session_t *s, u_char *pos,
        u_char *last);
+static ngx_int_t ngx_rtmp_mp4_parse_hvc1(ngx_rtmp_session_t *s, u_char *pos,
+       u_char *last);
+static ngx_int_t ngx_rtmp_mp4_parse_hev1(ngx_rtmp_session_t *s, u_char *pos,
+       u_char *last);
 static ngx_int_t ngx_rtmp_mp4_parse_avcC(ngx_rtmp_session_t *s, u_char *pos,
+       u_char *last);
+static ngx_int_t ngx_rtmp_mp4_parse_hvcC(ngx_rtmp_session_t *s, u_char *pos,
        u_char *last);
 static ngx_int_t ngx_rtmp_mp4_parse_mp4a(ngx_rtmp_session_t *s, u_char *pos,
        u_char *last);
@@ -375,7 +381,10 @@ static ngx_rtmp_mp4_box_t                       ngx_rtmp_mp4_boxes[] = {
     { ngx_rtmp_mp4_make_tag('s','t','c','o'),   ngx_rtmp_mp4_parse_stco   },
     { ngx_rtmp_mp4_make_tag('c','o','6','4'),   ngx_rtmp_mp4_parse_co64   },
     { ngx_rtmp_mp4_make_tag('a','v','c','1'),   ngx_rtmp_mp4_parse_avc1   },
+    { ngx_rtmp_mp4_make_tag('h','v','c','1'),   ngx_rtmp_mp4_parse_hvc1   },
+    { ngx_rtmp_mp4_make_tag('h','e','v','1'),   ngx_rtmp_mp4_parse_hev1   },
     { ngx_rtmp_mp4_make_tag('a','v','c','C'),   ngx_rtmp_mp4_parse_avcC   },
+    { ngx_rtmp_mp4_make_tag('h','v','c','C'),   ngx_rtmp_mp4_parse_hvcC   },
     { ngx_rtmp_mp4_make_tag('m','p','4','a'),   ngx_rtmp_mp4_parse_mp4a   },
     { ngx_rtmp_mp4_make_tag('m','p','4','v'),   ngx_rtmp_mp4_parse_mp4v   },
     { ngx_rtmp_mp4_make_tag('e','s','d','s'),   ngx_rtmp_mp4_parse_esds   },
@@ -747,6 +756,20 @@ ngx_rtmp_mp4_parse_avc1(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
 
 
 static ngx_int_t
+ngx_rtmp_mp4_parse_hvc1(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
+{
+    return ngx_rtmp_mp4_parse_video(s, pos, last, NGX_RTMP_VIDEO_H265);
+}
+
+
+static ngx_int_t
+ngx_rtmp_mp4_parse_hev1(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
+{
+    return ngx_rtmp_mp4_parse_video(s, pos, last, NGX_RTMP_VIDEO_H265);
+}
+
+
+static ngx_int_t
 ngx_rtmp_mp4_parse_mp4v(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
 {
     return ngx_rtmp_mp4_parse_video(s, pos, last, NGX_RTMP_VIDEO_H264);
@@ -773,6 +796,32 @@ ngx_rtmp_mp4_parse_avcC(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
 
     ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                    "mp4: video h264 header size=%uz",
+                   ctx->track->header_size);
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_rtmp_mp4_parse_hvcC(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
+{
+    ngx_rtmp_mp4_ctx_t         *ctx;
+
+    if (pos == last) {
+        return NGX_OK;
+    }
+
+    ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_mp4_module);
+
+    if (ctx->track == NULL || ctx->track->codec != NGX_RTMP_VIDEO_H265) {
+        return NGX_OK;
+    }
+
+    ctx->track->header = pos;
+    ctx->track->header_size = (size_t) (last - pos);
+
+    ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+                   "mp4: video h265 header size=%uz",
                    ctx->track->header_size);
 
     return NGX_OK;
@@ -2206,14 +2255,23 @@ ngx_rtmp_mp4_send(ngx_rtmp_session_t *s, ngx_file_t *f, ngx_uint_t *ts)
                            "mp4: track#%ui sending header of size=%uz",
                            t->id, t->header_size);
 
-            fhdr[0] = t->fhdr;
-            fhdr[1] = 0;
-
             if (t->type == NGX_RTMP_MSG_VIDEO) {
-                fhdr[0] |= 0x10;
-                fhdr[2] = fhdr[3] = fhdr[4] = 0;
-                fhdr_size = 5;
+                if (t->codec == NGX_RTMP_VIDEO_H265) {
+                    fhdr[0] = 0x90;
+                    fhdr[1] = 'h';
+                    fhdr[2] = 'v';
+                    fhdr[3] = 'c';
+                    fhdr[4] = '1';
+                    fhdr_size = 5;
+                } else {
+                    fhdr[0] = t->fhdr | 0x10;
+                    fhdr[1] = 0;
+                    fhdr[2] = fhdr[3] = fhdr[4] = 0;
+                    fhdr_size = 5;
+                }
             } else {
+                fhdr[0] = t->fhdr;
+                fhdr[1] = 0;
                 fhdr_size = 2;
             }
 
@@ -2246,33 +2304,57 @@ ngx_rtmp_mp4_send(ngx_rtmp_session_t *s, ngx_file_t *f, ngx_uint_t *ts)
                        t->id, cr->offset, cr->size, timestamp,
                        last_timestamp);
 
-        ngx_rtmp_mp4_buffer[0] = t->fhdr;
-        fhdr_size = 1;
-
         if (t->type == NGX_RTMP_MSG_VIDEO) {
             if (cr->key) {
-                ngx_rtmp_mp4_buffer[0] |= 0x10;
+                if (t->codec == NGX_RTMP_VIDEO_H265) {
+                    ngx_rtmp_mp4_buffer[0] = 0x91;
+                } else {
+                    ngx_rtmp_mp4_buffer[0] = t->fhdr | 0x10;
+                }
             } else if (cr->delay) {
-                ngx_rtmp_mp4_buffer[0] |= 0x20;
+                if (t->codec == NGX_RTMP_VIDEO_H265) {
+                    ngx_rtmp_mp4_buffer[0] = 0xa1;
+                } else {
+                    ngx_rtmp_mp4_buffer[0] = t->fhdr | 0x20;
+                }
             } else {
-                ngx_rtmp_mp4_buffer[0] |= 0x30;
+                if (t->codec == NGX_RTMP_VIDEO_H265) {
+                    ngx_rtmp_mp4_buffer[0] = 0xa1;
+                } else {
+                    ngx_rtmp_mp4_buffer[0] = t->fhdr | 0x30;
+                }
             }
 
             if (t->header) {
-                fhdr_size = 5;
-
                 rdelay = ngx_rtmp_mp4_to_rtmp_timestamp(t, cr->delay);
 
-                ngx_rtmp_mp4_buffer[1] = 1;
-                ngx_rtmp_mp4_buffer[2] = (rdelay >> 16) & 0xff;
-                ngx_rtmp_mp4_buffer[3] = (rdelay >> 8)  & 0xff;
-                ngx_rtmp_mp4_buffer[4] = rdelay & 0xff;
+                if (t->codec == NGX_RTMP_VIDEO_H265) {
+                    ngx_rtmp_mp4_buffer[1] = 'h';
+                    ngx_rtmp_mp4_buffer[2] = 'v';
+                    ngx_rtmp_mp4_buffer[3] = 'c';
+                    ngx_rtmp_mp4_buffer[4] = '1';
+                    ngx_rtmp_mp4_buffer[5] = (rdelay >> 16) & 0xff;
+                    ngx_rtmp_mp4_buffer[6] = (rdelay >> 8)  & 0xff;
+                    ngx_rtmp_mp4_buffer[7] = rdelay & 0xff;
+                    fhdr_size = 8;
+                } else {
+                    ngx_rtmp_mp4_buffer[1] = 1;
+                    ngx_rtmp_mp4_buffer[2] = (rdelay >> 16) & 0xff;
+                    ngx_rtmp_mp4_buffer[3] = (rdelay >> 8)  & 0xff;
+                    ngx_rtmp_mp4_buffer[4] = rdelay & 0xff;
+                    fhdr_size = 5;
+                }
+            } else {
+                fhdr_size = 1;
             }
 
         } else { /* NGX_RTMP_MSG_AUDIO */
+            ngx_rtmp_mp4_buffer[0] = t->fhdr;
             if (t->header) {
                 fhdr_size = 2;
                 ngx_rtmp_mp4_buffer[1] = 1;
+            } else {
+                fhdr_size = 1;
             }
         }
 

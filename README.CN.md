@@ -1,5 +1,11 @@
 # nginx-http-flv-module
 
+RTMP 现已支持 enhanced-RTMP 规范中的 HEVC（H.265，`hvc1` FourCC）视频包。HEVC 流可经 RTMP 直播、转发、GOP 缓存、录制及 HTTP-FLV 原样透传；MP4 VOD 输入亦接受 HEVC 并转换为 enhanced-RTMP 包。HLS 与 DASH 仍仅支持 H.264。
+
+本特性借助 AI 辅助开发，目前仅覆盖 enhanced-RTMP 的 HEVC 子集，其余特性尚未实现。
+
+---
+
 ![nginx-http-flv-module workflow](https://github.com/winshining/nginx-http-flv-module/actions/workflows/nginx-http-flv-module.yml/badge.svg?branch=master)
 
 一款基于 [nginx-rtmp-module](https://github.com/arut/nginx-rtmp-module) 的流媒体服务器。
@@ -37,13 +43,6 @@
 |   JSON 风格的数据信息    |           √           |         x         |                                          |
 |      录制的数据信息      |           √           |         x         |                                          |
 |        大小端无关        |           √           |       见备注      |        `big-endian` 分支部分支持         |
-
-RTMP 支持 enhanced-RTMP 的 HEVC（H.265，`hvc1` FourCC）视频包。HEVC
-视频可以通过 RTMP 直播、转发、GOP 缓存、录制和 HTTP-FLV 原样传递；HLS、
-DASH 和 MP4 输入仍仅支持 H.264。
-
-此特性在 AI 协助下开发。目前只对 enhanced-RTMP 的 HEVC 子集进行了
-patch，其他 enhanced-RTMP 特性尚未实现。
 
 ## 兼容性
 
