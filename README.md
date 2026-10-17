@@ -387,6 +387,7 @@ If [NGINX](http://nginx.org) is running in muti-processes mode and socket option
             application myapp {
                 live on;
                 gop_cache on; #open GOP cache for reducing the wating time for the first picture of video
+                mp4_buffer_size 1m; #buffer size for a single MP4 playback frame
             }
 
             application hls {

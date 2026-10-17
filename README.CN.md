@@ -386,6 +386,7 @@ nginx-http-flv-module 包含了 [nginx-rtmp-module](https://github.com/arut/ngin
             application myapp {
                 live on;
                 gop_cache on; #打开 GOP 缓存，减少首屏等待时间
+                mp4_buffer_size 1m; #MP4 播放时单帧缓冲区大小
             }
 
             application hls {
